@@ -47,9 +47,11 @@ jobs:
 
       - name: Download SDK
         run: |
-          SDK="openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl"
-          if [ "${{ inputs.sdk_version }}"x == "22.03.6"x ] then SDK="openwrt-sdk-22.03.6-x86-64_gcc-11.2.0_musl" fi
-          if [ "${{ inputs.sdk_version }}"x == "23.05.2"x ] then SDK="openwrt-sdk-23.05.2-x86-64_gcc-12.3.0_musl" fi
+          declare -A sdkMap=()
+          sdkMap["21.02.7"]="openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl"
+          sdkMap["22.03.6"]="openwrt-sdk-22.03.6-x86-64_gcc-11.2.0_musl"
+          sdkMap["23.05.2"]="openwrt-sdk-23.05.2-x86-64_gcc-12.3.0_musl"
+          SDK=$sdkMap[{{ inputs.sdk_version }}]
           echo "USE SDK=$SDK"
           wget https://archive.openwrt.org/releases/${{ inputs.sdk_version }}/targets/x86/64/$SDK.Linux-x86_64.tar.xz
           xz -d $SDK.Linux-x86_64.tar.xz
