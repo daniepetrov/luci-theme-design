@@ -1,4 +1,4 @@
-name: Release
+name: Release 21.02
 
 on:
   push:
@@ -6,6 +6,17 @@ on:
       - 'v*'
   repository_dispatch:
   workflow_dispatch:
+    inputs:
+      upload_artifact:
+        description: '是否上传到Artifact'
+        required: false
+        type: boolean
+        default: false
+      upload_release:
+        description: '是否上传到Release'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -27,10 +38,10 @@ jobs:
 
       - name: Download SDK
         run: |
-          wget https://archive.openwrt.org/releases/18.06.9/targets/x86/64/openwrt-sdk-18.06.9-x86-64_gcc-7.3.0_musl.Linux-x86_64.tar.xz
-          xz -d openwrt-sdk-18.06.9-x86-64_gcc-7.3.0_musl.Linux-x86_64.tar.xz
-          tar -xf openwrt-sdk-18.06.9-x86-64_gcc-7.3.0_musl.Linux-x86_64.tar
-          mv openwrt-sdk-18.06.9-x86-64_gcc-7.3.0_musl.Linux-x86_64 openwrt-sdk
+          wget https://archive.openwrt.org/releases/21.02.7/targets/x86/64/openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz
+          xz -d openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz
+          tar -xf openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar
+          mv openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64 openwrt-sdk
 
       - name: Build
         id: build
@@ -52,10 +63,17 @@ jobs:
         with:
         # Optionally strip `v` prefix
           strip_v: false
+          
+      - name : Upload to artifact
+        uses: actions/upload-artifact@master
+        if: steps.build.outputs.status == 'success' && github.event.inputs.upload_artifact == 'true' && !cancelled()
+        with:
+          name: ${{ inputs.device }}--${{ env.FILE_DATE }}
+          path: ${{ steps.build.outputs.TARGET }}
 
       - name: Upload to release
         uses: softprops/action-gh-release@v1
-        if: steps.build.outputs.status == 'success' && !cancelled()
+        if: steps.build.outputs.status == 'success' && github.event.inputs.upload_artifact == 'true' && !cancelled()
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
