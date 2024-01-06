@@ -53,7 +53,7 @@ jobs:
           wget https://archive.openwrt.org/releases/${{ inputs.sdk_version }}/targets/x86/64/${SDK}.Linux-x86_64.tar.xz
           xz -d ${SDK}.Linux-x86_64.tar.xz
           tar -xf ${SDK}.Linux-x86_64.tar
-          mv $TARGET.Linux-x86_64 openwrt-sdk
+          mv ${SDK}.Linux-x86_64 openwrt-sdk
 
       - name: Build
         id: build
