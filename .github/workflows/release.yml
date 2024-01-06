@@ -7,6 +7,15 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
+      sdk_version:
+        description: '编译SDK版本'     
+        required: true
+        default: '21.02.7' 
+        type: choice
+        options:
+        - 21.02.7
+        - 22.03.6
+        - 23.05.2
       upload_artifact:
         description: '是否上传到Artifact'
         required: false
@@ -38,10 +47,13 @@ jobs:
 
       - name: Download SDK
         run: |
-          wget https://archive.openwrt.org/releases/21.02.7/targets/x86/64/openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz
-          xz -d openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz
-          tar -xf openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar
-          mv openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64 openwrt-sdk
+          SDK='openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl'
+          if [ "${{ inputs.sdk_version }}"x == "22.03.6"x ] then SDK='openwrt-sdk-22.03.6-x86-64_gcc-11.2.0_musl' fi
+          if [ "${{ inputs.sdk_version }}"x == "23.05.2"x ] then SDK='openwrt-sdk-23.05.2-x86-64_gcc-12.3.0_musl' fi
+          wget https://archive.openwrt.org/releases/${{ inputs.sdk_version }}/targets/x86/64/${SDK}.Linux-x86_64.tar.xz
+          xz -d ${SDK}.Linux-x86_64.tar.xz
+          tar -xf ${SDK}.Linux-x86_64.tar
+          mv $TARGET.Linux-x86_64 openwrt-sdk
 
       - name: Build
         id: build
@@ -56,24 +68,25 @@ jobs:
           echo "TARGET=$(pwd)/$TARGET"
           echo "TARGET=$(pwd)/$TARGET" >> $GITHUB_OUTPUT
           echo "status=success" >> $GITHUB_OUTPUT
-
-      - name: Get tag
-        id: tag
-        uses: dawidd6/action-get-tag@v1
-        with:
-        # Optionally strip `v` prefix
-          strip_v: false
           
       - name : Upload to artifact
         uses: actions/upload-artifact@master
         if: steps.build.outputs.status == 'success' && github.event.inputs.upload_artifact == 'true' && !cancelled()
         with:
-          name: ${{ inputs.device }}--${{ env.FILE_DATE }}
+          name: luci-theme-design-${{ inputs.sdk_version }}
           path: ${{ steps.build.outputs.TARGET }}
 
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+        if: steps.build.outputs.status == 'success' && github.event.inputs.upload_release == 'true' && !cancelled()
+        with:
+        # Optionally strip `v` prefix
+          strip_v: false
+          
       - name: Upload to release
         uses: softprops/action-gh-release@v1
-        if: steps.build.outputs.status == 'success' && github.event.inputs.upload_artifact == 'true' && !cancelled()
+        if: steps.build.outputs.status == 'success' && github.event.inputs.upload_release == 'true' && !cancelled()
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
